@@ -1,0 +1,10 @@
+{
+    "author": "Senko12",
+    "name": "IonTvSchedule",
+    "description": "A cog to fetch and display ION TV schedule using Zap2it Guide Scraping.",
+    "install_msg": "Thank you for installing IonTvSchedule! Use `[p]ionschedule` to fetch today's schedule.",
+    "short": "Fetch ION TV schedule.",
+    "requirements": [],
+    "tags": ["tv", "schedule", "ION", "zap2it"],
+    "min_bot_version": "3.4.0"
+}
