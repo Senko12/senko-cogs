@@ -1,0 +1,10 @@
+{
+  "name": "YouTubeDownloader",
+  "author": "Senko12",
+  "description": "A cog for downloading and compressing YouTube videos or extracting audio as MP3.",
+  "install_msg": "Thank you for installing YouTubeDownloader! Use !ytdl <YouTube URL> to download videos or MP3s.",
+  "required_cogs": [],
+  "requirements": ["yt-dlp", "ffmpeg", "ffprobe"],
+  "tags": ["youtube", "video", "download", "compression"],
+  "type": "COG"
+}
