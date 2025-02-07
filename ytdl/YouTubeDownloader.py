@@ -75,7 +75,7 @@ class YouTubeDownloader(commands.Cog):
                 return await ctx.send("File is over 10MB. Run the command again with `-compress` to compress it.")
             
             if compress:
-                await ctx.send("Compressing video...")
+                await ctx.send("Compressing video... (this takes a while)")
                 compressed_file = await self.compress_video(file_path)
                 if not compressed_file or not os.path.exists(compressed_file):
                     return await ctx.send("Compression failed.")
