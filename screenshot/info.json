@@ -1,0 +1,14 @@
+{
+  "name": "screenshot",
+  "author": [
+    "Senko12"
+  ],
+  "description": "Takes a screenshot, then sends it",
+  "hidden": false,
+  "install_msg": "Screenshot funtions added.",
+  "short": "screenshots",
+  "tags": [
+    "sen-cogs"
+  ],
+  "end_user_data_statement": "This cog does not store any End User Data."
+}
