@@ -58,6 +58,7 @@ class YouTubeDownloader(commands.Cog):
     async def ytdl(self, ctx, url: str, option: str = None):
         """Downloads, optionally compresses, and sends a YouTube video or audio."""
         audio_only = option == "-mp3"
+        compress = option == "-compress"
         
         await ctx.send("Downloading...")
         file_path = await self.download_youtube_video(url, audio_only)
@@ -69,14 +70,22 @@ class YouTubeDownloader(commands.Cog):
             await ctx.send("Uploading audio file...")
             await ctx.send(file=discord.File(file_path))
         else:
-            await ctx.send("Compressing video...")
-            compressed_file = await self.compress_video(file_path)
-            if not compressed_file or not os.path.exists(compressed_file):
-                return await ctx.send("Compression failed.")
-            await ctx.send("Uploading compressed video...")
-            await ctx.send(file=discord.File(compressed_file))
-            os.remove(compressed_file)
-
+            file_size = os.stat(file_path).st_size / (1024 * 1024)  # Convert bytes to MB
+            if file_size > 10 and not compress:
+                return await ctx.send("File is over 10MB. Run the command again with `-compress` to compress it.")
+            
+            if compress:
+                await ctx.send("Compressing video...")
+                compressed_file = await self.compress_video(file_path)
+                if not compressed_file or not os.path.exists(compressed_file):
+                    return await ctx.send("Compression failed.")
+                await ctx.send("Uploading compressed video...")
+                await ctx.send(file=discord.File(compressed_file))
+                os.remove(compressed_file)
+            else:
+                await ctx.send("Uploading video file...")
+                await ctx.send(file=discord.File(file_path))
+        
         os.remove(file_path)
 
 async def setup(bot):
