@@ -1,14 +1,21 @@
 {
-  "name": "screenshot",
-  "author": [
-    "Senko12"
-  ],
-  "description": "Takes a screenshot, then sends it",
-  "hidden": false,
-  "install_msg": "Screenshot funtions added.",
-  "short": "screenshots",
-  "tags": [
-    "sen-cogs"
-  ],
-  "end_user_data_statement": "This cog does not store any End User Data."
+    "author": [
+        "Senko12"
+    ],
+    "description": "Takes a screenshot, then sends it",
+    "disabled": false,
+    "end_user_data_statement": "This cog does not store any End User Data.",
+    "hidden": false,
+    "install_msg": "senko probally made cogs she is 800",
+    "max_bot_version": "0.0.0",
+    "min_bot_version": "3.5.0",
+    "name": "screenshot",
+    "permissions": [],
+    "required_cogs": {},
+    "requirements": [],
+    "short": "screenshots",
+    "tags": [
+        "sen-cogs"
+    ],
+    "type": "COG"
 }
