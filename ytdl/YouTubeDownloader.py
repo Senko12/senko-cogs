@@ -64,10 +64,6 @@ class YouTubeDownloader(commands.Cog):
             print(f"Compression error: {e}")
             return None
 
-    def get_file_size(self, file_path: str) -> float:
-        """Returns the file size in MB."""
-        return os.stat(file_path).st_size / (1024 * 1024)  # Convert bytes to MB
-
     @commands.command()
     async def ytdl(self, ctx, url: str, option: str = None):
         """Downloads, optionally compresses, and sends a YouTube video or audio."""
@@ -80,31 +76,30 @@ class YouTubeDownloader(commands.Cog):
         if not file_path:
             return await ctx.send("Failed to download.")
 
-        file_size = self.get_file_size(file_path)
-        max_size = ctx.guild.filesize_limit / (1024 * 1024) if ctx.guild else 8  # Default to 8MB if unknown
-
         if audio_only:
-            await ctx.send(f"Uploading audio file... ({file_size:.2f}MB)")
+            file_size = os.stat(file_path).st_size / (1024 * 1024)
+            await ctx.send(f"Uploading audio file ({file_size:.2f}MB)...")
             await ctx.send(file=discord.File(file_path))
         else:
+            file_size = os.stat(file_path).st_size / (1024 * 1024)  # Convert bytes to MB
+            max_size = 10  # Hardcoded 10MB limit
+
             if file_size > max_size and not compress:
-                return await ctx.send(f"File is {file_size:.2f}MB, which is over the {max_size:.2f}MB limit. Use `-compress` to reduce the size.")
+                return await ctx.send(f"File is over {max_size}MB ({file_size:.2f}MB). Use `-compress` to compress it.")
 
             if compress:
-                await ctx.send(f"Compressing video... (Original size: {file_size:.2f}MB, this may take a while)")
+                await ctx.send("Compressing video... (this takes a while)")
                 compressed_file = await self.compress_video(file_path)
-
                 if not compressed_file or not os.path.exists(compressed_file):
                     return await ctx.send("Compression failed.")
-
-                compressed_size = self.get_file_size(compressed_file)
-                await ctx.send(f"Uploading compressed video... (New size: {compressed_size:.2f}MB)")
+                compressed_size = os.stat(compressed_file).st_size / (1024 * 1024)
+                await ctx.send(f"Uploading compressed video ({compressed_size:.2f}MB)...")
                 await ctx.send(file=discord.File(compressed_file))
                 os.remove(compressed_file)
             else:
-                await ctx.send(f"Uploading video file... ({file_size:.2f}MB)")
+                await ctx.send(f"Uploading video file ({file_size:.2f}MB)...")
                 await ctx.send(file=discord.File(file_path))
-
+        
         os.remove(file_path)
 
 async def setup(bot):
