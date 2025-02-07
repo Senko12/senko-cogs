@@ -11,7 +11,7 @@ class YouTubeDownloader(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def download_youtube_video(self, url: str, audio_only: bool = False) -> str:
+    async def download_youtube_video(self, ctx, url: str, audio_only: bool = False) -> str:
         """Downloads a YouTube video or audio and returns the file path."""
         output_path = "downloads"
         os.makedirs(output_path, exist_ok=True)
@@ -19,6 +19,7 @@ class YouTubeDownloader(commands.Cog):
         ydl_opts = {
             "format": "bestaudio" if audio_only else "mp4",
             "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+            "progress_hooks": [lambda d: asyncio.create_task(self.update_progress(ctx, d))],
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
@@ -29,7 +30,19 @@ class YouTubeDownloader(commands.Cog):
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict).replace(".webm", f".{format_type}")
 
-    async def compress_video(self, file_path: str) -> str:
+    async def update_progress(self, ctx, d):
+        if d["status"] == "downloading":
+            percent = d.get("_percent_str", "0%")
+            msg = f"Downloading... {percent}"
+            try:
+                if hasattr(ctx, "progress_msg"):
+                    await ctx.progress_msg.edit(content=msg)
+                else:
+                    ctx.progress_msg = await ctx.send(msg)
+            except discord.HTTPException:
+                pass
+
+    async def compress_video(self, ctx, file_path: str) -> str:
         """Compresses the video using FFmpeg and returns the new file path."""
         compressed_file = file_path + ".crushed.mp4"
 
@@ -61,7 +74,7 @@ class YouTubeDownloader(commands.Cog):
         compress = option == "-compress"
         
         await ctx.send("Downloading...")
-        file_path = await self.download_youtube_video(url, audio_only)
+        file_path = await self.download_youtube_video(ctx, url, audio_only)
 
         if not file_path:
             return await ctx.send("Failed to download.")
@@ -76,7 +89,7 @@ class YouTubeDownloader(commands.Cog):
             
             if compress:
                 await ctx.send("Compressing video...")
-                compressed_file = await self.compress_video(file_path)
+                compressed_file = await self.compress_video(ctx, file_path)
                 if not compressed_file or not os.path.exists(compressed_file):
                     return await ctx.send("Compression failed.")
                 await ctx.send("Uploading compressed video...")
