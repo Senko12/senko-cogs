@@ -1,0 +1,8 @@
+{
+    "name": "BBCNews",
+    "author": "Senko12",
+    "description": "A cog that fetches the latest news from BBC.",
+    "install_msg": "Thank you for installing BBCNews! Use `[p]bbcnews` to get the latest headlines.",
+    "requirements": [],
+    "tags": ["news", "BBC", "RSS"]
+}
