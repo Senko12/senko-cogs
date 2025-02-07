@@ -1,0 +1,23 @@
+{
+    "author": [
+        "Senko12"
+    ],
+    "description": "Some self-made (with ChatGPT) cogs for my and maybe your usage",
+    "disabled": false,
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users.",
+    "hidden": false,
+    "install_msg": "senko probally made cogs she is 800",
+    "max_bot_version": "0.0.0",
+    "min_bot_version": "3.1.8",
+    "min_python_version": [],
+    "name": "sen-cogs",
+    "permissions": [],
+    "required_cogs": {},
+    "requirements": [],
+    "short": "General cogs.",
+    "tags": [
+        "utility",
+        "fun"
+    ],
+    "type": "COG"
+}
