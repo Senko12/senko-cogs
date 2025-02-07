@@ -1,0 +1,9 @@
+{
+  "name": "ChicagoTime",
+  "author": "YourName",
+  "description": "A cog to get the current time in any timezone, with optional country search and 24-hour format.",
+  "install_msg": "Thank you for installing ChicagoTime! Use `[p]time` to get started.",
+  "requirements": ["pytz", "tzwhere"],
+  "tags": ["time", "timezone", "utility"],
+  "min_bot_version": "3.4.0"
+}
