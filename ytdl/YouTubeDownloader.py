@@ -16,10 +16,8 @@ class YouTubeDownloader(commands.Cog):
         output_path = "downloads"
         os.makedirs(output_path, exist_ok=True)
         format_type = "mp3" if audio_only else "mp4"
-
         ydl_opts = {
-            "format": "bestaudio[ext=m4a]" if audio_only else "bestvideo+bestaudio[ext=m4a]/best",
-            "merge_output_format": "mp4",
+            "format": "bestaudio" if audio_only else "mp4",
             "outtmpl": f"{output_path}/%(title)s.%(ext)s",
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
@@ -27,21 +25,13 @@ class YouTubeDownloader(commands.Cog):
                 "preferredquality": "192"
             }] if audio_only else []
         }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
-            downloaded_file = ydl.prepare_filename(info_dict)
-
-            # Ensure the file extension is correct
-            expected_file = downloaded_file.replace(".webm", f".{format_type}")
-            if downloaded_file != expected_file and os.path.exists(downloaded_file):
-                os.rename(downloaded_file, expected_file)
-
-            return expected_file if os.path.exists(expected_file) else None
+            return ydl.prepare_filename(info_dict).replace(".webm", f".{format_type}")
 
     async def compress_video(self, file_path: str) -> str:
         """Compresses the video using FFmpeg and returns the new file path."""
-        compressed_file = file_path.replace(".mp4", ".crushed.mp4")
+        compressed_file = file_path + ".crushed.mp4"
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -69,7 +59,7 @@ class YouTubeDownloader(commands.Cog):
         """Downloads, optionally compresses, and sends a YouTube video or audio."""
         audio_only = option == "-mp3"
         compress = option == "-compress"
-
+        
         await ctx.send("Downloading...")
         file_path = await self.download_youtube_video(url, audio_only)
 
@@ -77,27 +67,23 @@ class YouTubeDownloader(commands.Cog):
             return await ctx.send("Failed to download.")
 
         if audio_only:
-            file_size = os.stat(file_path).st_size / (1024 * 1024)
-            await ctx.send(f"Uploading audio file ({file_size:.2f}MB)...")
+            await ctx.send("Uploading audio file...")
             await ctx.send(file=discord.File(file_path))
         else:
             file_size = os.stat(file_path).st_size / (1024 * 1024)  # Convert bytes to MB
-            max_size = 10  # Hardcoded 10MB limit
-
-            if file_size > max_size and not compress:
-                return await ctx.send(f"File is over {max_size}MB ({file_size:.2f}MB). Use `-compress` to compress it.")
-
+            if file_size > 10 and not compress:
+                return await ctx.send("File is over 10MB. Run the command again with `-compress` to compress it.")
+            
             if compress:
-                await ctx.send("Compressing video... (this takes a while)")
+                await ctx.send("Compressing video...")
                 compressed_file = await self.compress_video(file_path)
                 if not compressed_file or not os.path.exists(compressed_file):
                     return await ctx.send("Compression failed.")
-                compressed_size = os.stat(compressed_file).st_size / (1024 * 1024)
-                await ctx.send(f"Uploading compressed video ({compressed_size:.2f}MB)...")
+                await ctx.send("Uploading compressed video...")
                 await ctx.send(file=discord.File(compressed_file))
                 os.remove(compressed_file)
             else:
-                await ctx.send(f"Uploading video file ({file_size:.2f}MB)...")
+                await ctx.send("Uploading video file...")
                 await ctx.send(file=discord.File(file_path))
         
         os.remove(file_path)
