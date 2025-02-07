@@ -15,14 +15,19 @@ class YouTubeDownloader(commands.Cog):
         """Downloads a YouTube video or audio and returns the file path."""
         output_path = "downloads"
         os.makedirs(output_path, exist_ok=True)
+        format_type = "mp3" if audio_only else "mp4"
         ydl_opts = {
-            "format": "bestaudio/best" if audio_only else "mp4",
-            "outtmpl": f"{output_path}/%(title)s-%(uploader)s.{'mp3' if audio_only else 'mp4'}",
-            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if audio_only else []
+            "format": "bestaudio" if audio_only else "mp4",
+            "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192"
+            }] if audio_only else []
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
-            return ydl.prepare_filename(info_dict)
+            return ydl.prepare_filename(info_dict).replace(".webm", f".{format_type}")
 
     async def compress_video(self, file_path: str) -> str:
         """Compresses the video using FFmpeg and returns the new file path."""
@@ -40,18 +45,21 @@ class YouTubeDownloader(commands.Cog):
                 print(stderr.decode())
                 return None
 
+            if not os.path.exists(compressed_file) or os.stat(compressed_file).st_size == 0:
+                print("Error: Output file not created or is empty.")
+                return None
+
             return compressed_file
         except Exception as e:
             print(f"Compression error: {e}")
             return None
 
     @commands.command()
-    async def ytdl(self, ctx, url: str, filetype: str = "mp4"):
-        """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
-        audio_only = filetype.lower() == "mp3"
-
-        await ctx.send(f"Downloading {filetype.upper()}...")
-
+    async def ytdl(self, ctx, url: str, option: str = None):
+        """Downloads, optionally compresses, and sends a YouTube video or audio."""
+        audio_only = option == "-mp3"
+        
+        await ctx.send("Downloading...")
         file_path = await self.download_youtube_video(url, audio_only)
 
         if not file_path:
@@ -60,20 +68,16 @@ class YouTubeDownloader(commands.Cog):
         if audio_only:
             await ctx.send("Uploading audio file...")
             await ctx.send(file=discord.File(file_path))
-            os.remove(file_path)
-            return
-
-        await ctx.send("Compressing video...")
-        compressed_file = await self.compress_video(file_path)
-
-        if not compressed_file or not os.path.exists(compressed_file):
-            return await ctx.send("Compression failed.")
-
-        await ctx.send("Uploading compressed video...")
-        await ctx.send(file=discord.File(compressed_file))
+        else:
+            await ctx.send("Compressing video...")
+            compressed_file = await self.compress_video(file_path)
+            if not compressed_file or not os.path.exists(compressed_file):
+                return await ctx.send("Compression failed.")
+            await ctx.send("Uploading compressed video...")
+            await ctx.send(file=discord.File(compressed_file))
+            os.remove(compressed_file)
 
         os.remove(file_path)
-        os.remove(compressed_file)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
