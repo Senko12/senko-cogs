@@ -13,36 +13,39 @@ class YouTubeDownloader(commands.Cog):
 
     async def download_youtube_video(self, url: str, audio_only: bool = False) -> str:
         """Downloads a YouTube video or audio and returns the file path."""
-        # Set the folder to "Downloads" (capital D)
         output_path = "Downloads"
         os.makedirs(output_path, exist_ok=True)
 
-        # yt-dlp options to download audio or video
-        ydl_opts = {
-            "format": "bestaudio/best" if audio_only else "mp4",  # Download best audio if audio_only is True
-            "outtmpl": f"{output_path}/%(title)s-%(uploader)s.%(ext)s",  # Let yt-dlp decide the extension
-            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}] if audio_only else []  # Explicitly convert audio to mp3
-        }
-        
-        # Download the video or audio
+        if audio_only:
+            # Download only audio in the best quality
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+            }
+        else:
+            # Download video as MP4
+            ydl_opts = {
+                "format": "bestvideo+bestaudio/best",
+                "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+            }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict)
 
     async def convert_to_mp3(self, file_path: str) -> str:
-        """Converts the downloaded file to MP3 format using FFmpeg and returns the new file path."""
-        mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change extension to .mp3
+        """Convert the downloaded file to MP3 format using FFmpeg and returns the new file path."""
+        mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change the extension to .mp3
         try:
-            # Log the file paths for debugging
             print(f"Converting {file_path} to {mp3_file}")
 
             # Ensure the paths are absolute
             file_path = os.path.abspath(file_path)
             mp3_file = os.path.abspath(mp3_file)
 
-            # Run FFmpeg conversion with paths as separate arguments (no manual quoting)
+            # Run FFmpeg to convert audio file
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, mp3_file,  # Pass the file paths as separate arguments
+                "ffmpeg", "-i", file_path, "-vn", "-acodec", "libmp3lame", mp3_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -62,10 +65,6 @@ class YouTubeDownloader(commands.Cog):
         compressed_file = file_path + ".crushed.mp4"
 
         try:
-            # Ensure paths are absolute
-            file_path = os.path.abspath(file_path)
-            compressed_file = os.path.abspath(compressed_file)
-
             process = await asyncio.create_subprocess_exec(
                 "python3", "compress.py", file_path,
                 stdout=asyncio.subprocess.PIPE,
