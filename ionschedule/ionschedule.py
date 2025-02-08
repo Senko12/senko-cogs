@@ -7,7 +7,11 @@ class IonTvSchedule(commands.Cog):
     """Cog to fetch and display ION TV schedule."""
 
     SCRIPT_URL = "https://raw.githubusercontent.com/daniel-widrick/zap2it-GuideScraping/main/zap2it-GuideScrape.py"
-    OUTPUT_FILE = "xmlguide.xmltv"
+    SCRIPT_PATH = "zap2it-GuideScrape.py"
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(SCRIPT_PATH))  # Directory of the script
+    CONFIG_FILE = os.path.join(SCRIPT_DIR, "zap2itconfig.ini")
+    DEFAULT_CONFIG = os.path.join(SCRIPT_DIR, "config.ini.dist")
+    OUTPUT_FILE = os.path.join(SCRIPT_DIR, "xmlguide.xmltv")
 
     def __init__(self, bot):
         self.bot = bot
@@ -18,18 +22,25 @@ class IonTvSchedule(commands.Cog):
         await ctx.send("Fetching ION TV schedule...")
 
         # Download script
-        script_path = "zap2it-GuideScrape.py"
         try:
             response = requests.get(self.SCRIPT_URL, timeout=10)
-            response.raise_for_status()  # Raise an error if the request failed
-            with open(script_path, "w", encoding="utf-8") as script_file:
+            response.raise_for_status()
+            with open(self.SCRIPT_PATH, "w", encoding="utf-8") as script_file:
                 script_file.write(response.text)
         except requests.exceptions.RequestException as e:
             await ctx.send(f"Error downloading the guide scraper script: {e}")
             return
 
+        # Ensure config file exists in the same directory as the script
+        if not os.path.exists(self.CONFIG_FILE):
+            if os.path.exists(self.DEFAULT_CONFIG):
+                os.system(f"cp {self.DEFAULT_CONFIG} {self.CONFIG_FILE}")  # Copy default config
+            else:
+                await ctx.send("Error: Missing zap2itconfig.ini and config.ini.dist. Please provide these files.")
+                return
+
         # Run script
-        result = os.system(f"python {script_path}")
+        result = os.system(f"python {self.SCRIPT_PATH}")
         if result != 0:
             await ctx.send("Error running the guide scraper script.")
             return
