@@ -1,9 +1,11 @@
 import discord
 import yt_dlp
-import subprocess
 import os
 import asyncio
 from redbot.core import commands
+from os import remove
+from tempfile import NamedTemporaryFile
+import ffmpeg
 
 class YouTubeDownloader(commands.Cog):
     """Download and compress YouTube videos for Discord"""
@@ -33,19 +35,26 @@ class YouTubeDownloader(commands.Cog):
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict)
 
-    async def convert_to_mp3(self, file_path: str) -> str:
-        """Convert the downloaded file to MP3 format using FFmpeg and returns the new file path."""
-        mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change the extension to .mp3
+    async def convert_to_webm(self, file_path: str) -> str:
+        """Convert the downloaded file to WebM format and returns the new file path."""
+        webm_file = file_path.rsplit('.', 1)[0] + ".webm"  # Change the extension to .webm
         try:
-            print(f"Converting {file_path} to {mp3_file}")
+            print(f"Converting {file_path} to {webm_file}")
 
             # Ensure the paths are absolute
             file_path = os.path.abspath(file_path)
-            mp3_file = os.path.abspath(mp3_file)
+            webm_file = os.path.abspath(webm_file)
 
-            # Run FFmpeg to convert audio file
+            # Probe the input file for its information
+            info = ffmpeg.probe(file_path)
+            duration = int(float(info["format"]["duration"]))
+            video_bitrate = 60_000_000 / duration * 60 / 100
+            audio_bitrate = 4_000_000 / duration * 75 / 100
+
+            # Run FFmpeg to convert video to WebM format
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-vn", "-acodec", "libmp3lame", mp3_file,
+                "ffmpeg", "-i", file_path, "-c:v", "libvpx-vp9", "-b:v", str(video_bitrate),
+                "-vf", "scale=1280:720", "-c:a", "libopus", "-b:a", str(audio_bitrate), webm_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -55,30 +64,9 @@ class YouTubeDownloader(commands.Cog):
                 print(stderr.decode())
                 return None
 
-            return mp3_file
+            return webm_file
         except Exception as e:
-            print(f"Error converting to MP3: {e}")
-            return None
-
-    async def compress_video(self, file_path: str) -> str:
-        """Compresses the video using FFmpeg and returns the new file path."""
-        compressed_file = file_path + ".crushed.mp4"
-
-        try:
-            process = await asyncio.create_subprocess_exec(
-                "python3", "compress.py", file_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-
-            if process.returncode != 0:
-                print(stderr.decode())
-                return None
-
-            return compressed_file
-        except Exception as e:
-            print(f"Compression error: {e}")
+            print(f"Error converting to WebM: {e}")
             return None
 
     @commands.command()
@@ -94,33 +82,24 @@ class YouTubeDownloader(commands.Cog):
             return await ctx.send("Failed to download.")
 
         if audio_only:
-            # If it's an MP3 download, convert if needed
-            if not file_path.endswith(".mp3"):
-                mp3_file = await self.convert_to_mp3(file_path)
-                if not mp3_file:
-                    return await ctx.send("Failed to convert to MP3.")
-                await ctx.send("Uploading MP3 file...")
-                await ctx.send(file=discord.File(mp3_file))
-                os.remove(mp3_file)  # Delete the MP3 after sending
-            else:
-                await ctx.send("Uploading audio file...")
-                await ctx.send(file=discord.File(file_path))
-            
-            # Delete the original file after MP3 is uploaded
-            os.remove(file_path)
+            # If it's an MP3 download, send the audio file directly
+            await ctx.send("Uploading audio file...")
+            await ctx.send(file=discord.File(file_path))
+            os.remove(file_path)  # Delete the original file after sending
             return
 
-        await ctx.send("Compressing video...")
-        compressed_file = await self.compress_video(file_path)
+        # Convert video to WebM format
+        await ctx.send("Converting to WebM...")
+        webm_file = await self.convert_to_webm(file_path)
 
-        if not compressed_file or not os.path.exists(compressed_file):
-            return await ctx.send("Compression failed.")
+        if not webm_file or not os.path.exists(webm_file):
+            return await ctx.send("Conversion to WebM failed.")
 
-        await ctx.send("Uploading compressed video...")
-        await ctx.send(file=discord.File(compressed_file))
+        await ctx.send("Uploading converted video...")
+        await ctx.send(file=discord.File(webm_file))
 
         os.remove(file_path)  # Delete the original file after sending
-        os.remove(compressed_file)
+        os.remove(webm_file)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
