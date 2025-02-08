@@ -5,7 +5,7 @@ import asyncio
 from redbot.core import commands
 from os import remove
 from tempfile import NamedTemporaryFile
-import ffmpeg
+import ffmpeg  # This will now be ffmpeg-python
 
 class YouTubeDownloader(commands.Cog):
     """Download and compress YouTube videos for Discord"""
@@ -45,8 +45,8 @@ class YouTubeDownloader(commands.Cog):
             file_path = os.path.abspath(file_path)
             webm_file = os.path.abspath(webm_file)
 
-            # Probe the input file for its information
-            info = ffmpeg.probe(file_path)
+            # Probe the input file for its information using ffmpeg-python
+            info = ffmpeg.probe(file_path)  # Now using ffmpeg.probe from ffmpeg-python
             duration = int(float(info["format"]["duration"]))
             video_bitrate = 60_000_000 / duration * 60 / 100
             audio_bitrate = 4_000_000 / duration * 75 / 100
