@@ -15,11 +15,15 @@ class YouTubeDownloader(commands.Cog):
         """Downloads a YouTube video or audio and returns the file path."""
         output_path = "downloads"
         os.makedirs(output_path, exist_ok=True)
+
+        # yt-dlp options to download audio or video
         ydl_opts = {
-            "format": "bestaudio/best" if audio_only else "mp4",
-            "outtmpl": f"{output_path}/%(title)s-%(uploader)s.{'mp3' if audio_only else 'mp4'}",
-            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if audio_only else []
+            "format": "bestaudio/best" if audio_only else "mp4",  # Download best audio if audio_only is True
+            "outtmpl": f"{output_path}/%(title)s-%(uploader)s.%(ext)s",  # Let yt-dlp decide the extension
+            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}] if audio_only else []  # Explicitly convert audio to mp3
         }
+        
+        # Download the video or audio
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict)
