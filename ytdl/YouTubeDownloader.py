@@ -13,7 +13,8 @@ class YouTubeDownloader(commands.Cog):
 
     async def download_youtube_video(self, url: str, audio_only: bool = False) -> str:
         """Downloads a YouTube video or audio and returns the file path."""
-        output_path = "downloads"
+        # Set the folder to "Downloads" (capital D)
+        output_path = "Downloads"
         os.makedirs(output_path, exist_ok=True)
 
         # yt-dlp options to download audio or video
