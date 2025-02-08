@@ -90,12 +90,12 @@ class YouTubeDownloader(commands.Cog):
                     return await ctx.send("Failed to convert to MP3.")
                 await ctx.send("Uploading MP3 file...")
                 await ctx.send(file=discord.File(mp3_file))
-                os.remove(file_path)
-                os.remove(mp3_file)
+                os.remove(mp3_file)  # Delete the MP3 after sending
             else:
                 await ctx.send("Uploading audio file...")
                 await ctx.send(file=discord.File(file_path))
-                os.remove(file_path)
+            
+            os.remove(file_path)  # Delete the original file after sending MP3
             return
 
         await ctx.send("Compressing video...")
