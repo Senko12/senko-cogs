@@ -2,12 +2,13 @@ import requests
 import xml.etree.ElementTree as ET
 from redbot.core import commands
 import os
+import subprocess
 
 class IonTvSchedule(commands.Cog):
     """Cog to fetch and display ION TV schedule."""
 
     SCRIPT_URL = "https://raw.githubusercontent.com/daniel-widrick/zap2it-GuideScraping/main/zap2it-GuideScrape.py"
-    OUTPUT_FILE = "xmlguide.xmltv"
+    OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "xmlguide.xmltv")
     CONFIG_FILE = os.path.join(os.path.dirname(__file__), "zap2itconfig.ini")
     DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), "config.ini.dist")
 
@@ -33,14 +34,15 @@ class IonTvSchedule(commands.Cog):
         # Ensure config file exists in the same directory as the script
         if not os.path.exists(self.CONFIG_FILE):
             if os.path.exists(self.DEFAULT_CONFIG):
-                os.system(f"cp {self.DEFAULT_CONFIG} {self.CONFIG_FILE}")  # Copy default config
+                os.system(f'cp "{self.DEFAULT_CONFIG}" "{self.CONFIG_FILE}"')  # Copy default config
             else:
                 await ctx.send("Error: Missing zap2itconfig.ini and config.ini.dist. Please provide these files.")
                 return
 
-        # Run script
-        result = os.system(f"python {script_path}")
-        if result != 0:
+        # Run script using subprocess
+        try:
+            subprocess.run(["python", script_path], check=True)
+        except subprocess.CalledProcessError:
             await ctx.send("Error running the guide scraper script.")
             return
 
