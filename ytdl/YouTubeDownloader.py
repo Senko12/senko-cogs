@@ -32,6 +32,13 @@ class YouTubeDownloader(commands.Cog):
         """Converts the downloaded file to MP3 format using FFmpeg and returns the new file path."""
         mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change extension to .mp3
         try:
+            # Log the file paths for debugging
+            print(f"Converting {file_path} to {mp3_file}")
+
+            # Use absolute paths to avoid any path issues
+            file_path = os.path.abspath(file_path)
+            mp3_file = os.path.abspath(mp3_file)
+
             # Run FFmpeg conversion
             process = await asyncio.create_subprocess_exec(
                 "ffmpeg", "-i", file_path, mp3_file,
