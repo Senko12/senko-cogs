@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiohttp
 
-class BBCNews(commands.Cog):
+class BBCNews(commands.Cog):  # Inherit from commands.Cog
     def __init__(self, bot):
         self.bot = bot
 
