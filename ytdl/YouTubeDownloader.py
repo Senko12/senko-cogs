@@ -6,7 +6,7 @@ import asyncio
 from redbot.core import commands
 
 class YouTubeDownloader(commands.Cog):
-    """Download YouTube videos and convert to MP3 or MP4"""
+    """Download and compress YouTube videos for Discord"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -33,19 +33,15 @@ class YouTubeDownloader(commands.Cog):
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict)
 
-    async def convert_to_mp3(self, file_path: str) -> str:
-        """Convert the downloaded file to MP3 format using FFmpeg and returns the new file path."""
-        mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change the extension to .mp3
+    async def compress_video(self, file_path: str) -> str:
+        """Compress the video using FFmpeg with specific parameters and returns the new file path."""
+        compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
+
         try:
-            print(f"Converting {file_path} to {mp3_file}")
-
-            # Ensure the paths are absolute
-            file_path = os.path.abspath(file_path)
-            mp3_file = os.path.abspath(mp3_file)
-
-            # Run FFmpeg to convert audio file
+            # Run FFmpeg with the given compression command
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-vn", "-acodec", "libmp3lame", mp3_file,
+                "ffmpeg", "-i", file_path, "-n", "-fs", "7950000", "-fpsmax", "60", 
+                "-s", "676x380", "-b:a", "90000", "-b:v", "400000", compressed_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -55,14 +51,14 @@ class YouTubeDownloader(commands.Cog):
                 print(stderr.decode())
                 return None
 
-            return mp3_file
+            return compressed_file
         except Exception as e:
-            print(f"Error converting to MP3: {e}")
+            print(f"Compression error: {e}")
             return None
 
     @commands.command()
     async def ytdl(self, ctx, url: str, filetype: str = "mp4"):
-        """Downloads a YouTube video or MP3. Converts video to MP4 with audio and h264 encoding."""
+        """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
         audio_only = filetype.lower() == "mp3"
 
         await ctx.send(f"Downloading {filetype.upper()}...")
@@ -89,24 +85,17 @@ class YouTubeDownloader(commands.Cog):
             os.remove(file_path)
             return
 
-        # Convert video to MP4 with h264 video codec and MP3 audio codec
-        mp4_file = file_path.rsplit('.', 1)[0] + "_converted.mp4"
-        process = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-i", file_path, "-vcodec", "h264", "-acodec", "mp3", mp4_file,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
+        await ctx.send("Compressing video...")
+        compressed_file = await self.compress_video(file_path)
 
-        if process.returncode != 0:
-            print(stderr.decode())
-            return await ctx.send("Failed to convert video.")
+        if not compressed_file or not os.path.exists(compressed_file):
+            return await ctx.send("Compression failed.")
 
-        await ctx.send("Uploading converted video...")
-        await ctx.send(file=discord.File(mp4_file))
+        await ctx.send("Uploading compressed video...")
+        await ctx.send(file=discord.File(compressed_file))
 
         os.remove(file_path)  # Delete the original file after sending
-        os.remove(mp4_file)   # Delete the converted file after sending
+        os.remove(compressed_file)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
