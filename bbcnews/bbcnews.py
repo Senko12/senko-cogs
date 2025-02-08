@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiohttp
 
-class BBCNews(commands.Cog):  # Inherit from commands.Cog
+class BBCNews(commands.Cog):  # Ensure inheritance from commands.Cog
     def __init__(self, bot):
         self.bot = bot
 
@@ -46,6 +46,6 @@ class BBCNews(commands.Cog):  # Inherit from commands.Cog
         else:
             await interaction.response.send_message("Sorry, I couldn't fetch the news at the moment.")
 
-# Setup the cog
+# Setup function
 async def setup(bot):
-    await bot.add_cog(BBCNews(bot))
+    await bot.add_cog(BBCNews(bot))  # Adding cog
