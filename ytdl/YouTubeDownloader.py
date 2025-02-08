@@ -6,7 +6,7 @@ import asyncio
 from redbot.core import commands
 
 class YouTubeDownloader(commands.Cog):
-    """Download YouTube videos for Discord"""
+    """Download and process YouTube videos for Discord"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -32,7 +32,7 @@ class YouTubeDownloader(commands.Cog):
             return ydl.prepare_filename(info_dict)
 
     async def convert_to_mp3(self, file_path: str) -> str:
-        """Convert the downloaded file to MP3 format using FFmpeg and returns the new file path."""
+        """Convert the downloaded file to MP3 format using FFmpeg and return the new file path."""
         mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"
         try:
             process = await asyncio.create_subprocess_exec(
@@ -40,59 +40,78 @@ class YouTubeDownloader(commands.Cog):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            await process.communicate()
+            stdout, stderr = await process.communicate()
+
             if process.returncode != 0:
+                print(stderr.decode())
                 return None
+
             return mp3_file
-        except Exception:
+        except Exception as e:
+            print(f"Error converting to MP3: {e}")
             return None
 
-    async def process_video(self, file_path: str) -> str:
-        """Processes the video using FFmpeg and returns the new file path."""
-        if os.path.getsize(file_path) < 10 * 1024 * 1024:  # Skip processing if file is under 10MB
-            return file_path
-        
-        processed_file = file_path.rsplit('.', 1)[0] + "_processed.mp4"
+    async def compress_video(self, file_path: str) -> str:
+        """Compress the video using FFmpeg with specific parameters and return the new file path."""
+        compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
         try:
+            if os.path.getsize(file_path) <= 10 * 1024 * 1024:
+                return file_path
+
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-c:v", "libx265", "-preset", "slow", "-crf", "28",
-                "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", processed_file,
+                "ffmpeg", "-i", file_path, "-n", "-fs", "7950000", "-fpsmax", "60", 
+                "-s", "676x380", "-b:a", "90000", "-b:v", "400000", compressed_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            await process.communicate()
+            stdout, stderr = await process.communicate()
+
             if process.returncode != 0:
+                print(stderr.decode())
                 return None
-            return processed_file
-        except Exception:
+
+            return compressed_file
+        except Exception as e:
+            print(f"Compression error: {e}")
             return None
 
     @commands.command()
     async def ytdl(self, ctx, url: str, filetype: str = "mp4"):
-        """Downloads a YouTube video or MP3."""
+        """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
         audio_only = filetype.lower() == "mp3"
+
         await ctx.send(f"Downloading {filetype.upper()}...")
         file_path = await self.download_youtube_video(url, audio_only)
+
         if not file_path:
             return await ctx.send("Failed to download.")
+
         if audio_only:
             if not file_path.endswith(".mp3"):
                 mp3_file = await self.convert_to_mp3(file_path)
                 if not mp3_file:
                     return await ctx.send("Failed to convert to MP3.")
+                await ctx.send("Uploading MP3 file...")
                 await ctx.send(file=discord.File(mp3_file))
                 os.remove(mp3_file)
             else:
+                await ctx.send("Uploading audio file...")
                 await ctx.send(file=discord.File(file_path))
             os.remove(file_path)
             return
-        processed_file = await self.process_video(file_path)
-        if not processed_file or not os.path.exists(processed_file):
-            return await ctx.send("Video processing failed.")
-        await ctx.send(file=discord.File(processed_file))
+
+        await ctx.send("Checking if compression is needed...")
+        compressed_file = await self.compress_video(file_path)
+
+        if not compressed_file or not os.path.exists(compressed_file):
+            return await ctx.send("Compression failed.")
+
+        await ctx.send("Uploading video...")
+        await ctx.send(file=discord.File(compressed_file))
+
         os.remove(file_path)
-        if processed_file != file_path:
-            os.remove(processed_file)
+        if compressed_file != file_path:
+            os.remove(compressed_file)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
