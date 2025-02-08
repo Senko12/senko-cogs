@@ -7,11 +7,9 @@ class IonTvSchedule(commands.Cog):
     """Cog to fetch and display ION TV schedule."""
 
     SCRIPT_URL = "https://raw.githubusercontent.com/daniel-widrick/zap2it-GuideScraping/main/zap2it-GuideScrape.py"
-    SCRIPT_PATH = "zap2it-GuideScrape.py"
-    SCRIPT_DIR = os.path.dirname(os.path.abspath(SCRIPT_PATH))  # Directory of the script
-    CONFIG_FILE = os.path.join(SCRIPT_DIR, "zap2itconfig.ini")
-    DEFAULT_CONFIG = os.path.join(SCRIPT_DIR, "config.ini.dist")
-    OUTPUT_FILE = os.path.join(SCRIPT_DIR, "xmlguide.xmltv")
+    OUTPUT_FILE = "xmlguide.xmltv"
+    CONFIG_FILE = os.path.join(os.path.dirname(__file__), "zap2itconfig.ini")
+    DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), "config.ini.dist")
 
     def __init__(self, bot):
         self.bot = bot
@@ -22,10 +20,11 @@ class IonTvSchedule(commands.Cog):
         await ctx.send("Fetching ION TV schedule...")
 
         # Download script
+        script_path = os.path.join(os.path.dirname(__file__), "zap2it-GuideScrape.py")
         try:
             response = requests.get(self.SCRIPT_URL, timeout=10)
-            response.raise_for_status()
-            with open(self.SCRIPT_PATH, "w", encoding="utf-8") as script_file:
+            response.raise_for_status()  # Raise an error if the request failed
+            with open(script_path, "w", encoding="utf-8") as script_file:
                 script_file.write(response.text)
         except requests.exceptions.RequestException as e:
             await ctx.send(f"Error downloading the guide scraper script: {e}")
@@ -40,7 +39,7 @@ class IonTvSchedule(commands.Cog):
                 return
 
         # Run script
-        result = os.system(f"python {self.SCRIPT_PATH}")
+        result = os.system(f"python {script_path}")
         if result != 0:
             await ctx.send("Error running the guide scraper script.")
             return
