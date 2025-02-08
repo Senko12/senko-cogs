@@ -35,13 +35,13 @@ class YouTubeDownloader(commands.Cog):
             # Log the file paths for debugging
             print(f"Converting {file_path} to {mp3_file}")
 
-            # Use absolute paths to avoid any path issues
+            # Ensure the paths are absolute
             file_path = os.path.abspath(file_path)
             mp3_file = os.path.abspath(mp3_file)
 
-            # Run FFmpeg conversion
+            # Run FFmpeg conversion with quoted paths to handle spaces
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, mp3_file,
+                "ffmpeg", "-i", f'"{file_path}"', f'"{mp3_file}"',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -61,8 +61,12 @@ class YouTubeDownloader(commands.Cog):
         compressed_file = file_path + ".crushed.mp4"
 
         try:
+            # Ensure paths are absolute and quoted
+            file_path = os.path.abspath(file_path)
+            compressed_file = os.path.abspath(compressed_file)
+
             process = await asyncio.create_subprocess_exec(
-                "python3", "compress.py", file_path,
+                "python3", "compress.py", f'"{file_path}"',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
