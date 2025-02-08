@@ -95,7 +95,8 @@ class YouTubeDownloader(commands.Cog):
                 await ctx.send("Uploading audio file...")
                 await ctx.send(file=discord.File(file_path))
             
-            os.remove(file_path)  # Delete the original file after sending MP3
+            # Delete the original file after MP3 is uploaded
+            os.remove(file_path)
             return
 
         await ctx.send("Compressing video...")
@@ -107,7 +108,7 @@ class YouTubeDownloader(commands.Cog):
         await ctx.send("Uploading compressed video...")
         await ctx.send(file=discord.File(compressed_file))
 
-        os.remove(file_path)
+        os.remove(file_path)  # Delete the original file after sending
         os.remove(compressed_file)
 
 async def setup(bot):
