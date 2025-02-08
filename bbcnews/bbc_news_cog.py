@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands  # Add this import
 import feedparser
 
 class BBCNews(commands.Cog):
