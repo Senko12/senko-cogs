@@ -59,7 +59,7 @@ class YouTubeDownloader(commands.Cog):
                 return file_path
 
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-b:a", "90000", "-b:v", "400000", compressed_file,
+                "ffmpeg", "-i", file_path, "-b:a", "128k", "-b:v", "800k", compressed_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
