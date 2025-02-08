@@ -1,50 +1,51 @@
 import discord
 from discord.ext import commands
-from discord import app_commands  # Add this import
-import feedparser
+from discord import app_commands
+import aiohttp
 
 class BBCNews(commands.Cog):
-    """Fetches the latest news from BBC."""
-
     def __init__(self, bot):
         self.bot = bot
-        self.feed_url = "http://feeds.bbci.co.uk/news/rss.xml"
 
-    @commands.command()
-    async def bbcnews(self, ctx, count: int = 5):
-        """Fetches the latest BBC News headlines (default: 5)."""
-        await self.fetch_news(ctx, count)
+    # Function to fetch the latest BBC News
+    async def fetch_bbc_news(self):
+        url = 'https://newsapi.org/v2/top-headlines'
+        params = {
+            'apiKey': 'YOUR_NEWSAPI_KEY',  # You'll need to get a NewsAPI key
+            'sources': 'bbc-news',
+        }
 
-    @app_commands.command(name="bbcnews")
-    async def slash_bbcnews(self, interaction: discord.Interaction, count: int = 5):
-        """Fetches the latest BBC News headlines (default: 5)."""
-        await self.fetch_news(interaction, count, slash=True)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    articles = data['articles']
+                    return articles
+                else:
+                    return None
 
-    async def fetch_news(self, ctx_or_interaction, count: int, slash: bool = False):
-        if count < 1 or count > 10:
-            msg = "Please request between 1 and 10 headlines."
-            if slash:
-                await ctx_or_interaction.response.send_message(msg, ephemeral=True)
-            else:
-                await ctx_or_interaction.send(msg)
-            return
+    # Slash command to get the latest BBC news
+    @app_commands.command(name="bbc_news", description="Get the latest news from BBC")
+    async def bbc_news(self, interaction: discord.Interaction):
+        articles = await self.fetch_bbc_news()
+        if articles:
+            embed = discord.Embed(
+                title="Latest BBC News",
+                description="Here are the top stories from BBC News:",
+                color=discord.Color.blue()
+            )
 
-        feed = feedparser.parse(self.feed_url)
-        if not feed.entries:
-            msg = "Could not retrieve BBC News at this time."
-            if slash:
-                await ctx_or_interaction.response.send_message(msg, ephemeral=True)
-            else:
-                await ctx_or_interaction.send(msg)
-            return
+            for article in articles[:5]:  # Get top 5 latest articles
+                embed.add_field(
+                    name=article['title'],
+                    value=f"[Read more]({article['url']})",
+                    inline=False
+                )
 
-        headlines = "\n".join([f"**{entry.title}**\n{entry.link}" for entry in feed.entries[:count]])
-        embed = discord.Embed(title="Latest BBC News", color=discord.Color.blue(), description=headlines)
-
-        if slash:
-            await ctx_or_interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed)
         else:
-            await ctx_or_interaction.send(embed=embed)
+            await interaction.response.send_message("Sorry, I couldn't fetch the news at the moment.")
 
+# Setup the cog
 async def setup(bot):
     await bot.add_cog(BBCNews(bot))
