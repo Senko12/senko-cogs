@@ -28,6 +28,27 @@ class YouTubeDownloader(commands.Cog):
             info_dict = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info_dict)
 
+    async def convert_to_mp3(self, file_path: str) -> str:
+        """Converts the downloaded file to MP3 format using FFmpeg and returns the new file path."""
+        mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"  # Change extension to .mp3
+        try:
+            # Run FFmpeg conversion
+            process = await asyncio.create_subprocess_exec(
+                "ffmpeg", "-i", file_path, mp3_file,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+
+            if process.returncode != 0:
+                print(stderr.decode())
+                return None
+
+            return mp3_file
+        except Exception as e:
+            print(f"Error converting to MP3: {e}")
+            return None
+
     async def compress_video(self, file_path: str) -> str:
         """Compresses the video using FFmpeg and returns the new file path."""
         compressed_file = file_path + ".crushed.mp4"
@@ -62,9 +83,19 @@ class YouTubeDownloader(commands.Cog):
             return await ctx.send("Failed to download.")
 
         if audio_only:
-            await ctx.send("Uploading audio file...")
-            await ctx.send(file=discord.File(file_path))
-            os.remove(file_path)
+            # If it's an MP3 download, convert if needed
+            if not file_path.endswith(".mp3"):
+                mp3_file = await self.convert_to_mp3(file_path)
+                if not mp3_file:
+                    return await ctx.send("Failed to convert to MP3.")
+                await ctx.send("Uploading MP3 file...")
+                await ctx.send(file=discord.File(mp3_file))
+                os.remove(file_path)
+                os.remove(mp3_file)
+            else:
+                await ctx.send("Uploading audio file...")
+                await ctx.send(file=discord.File(file_path))
+                os.remove(file_path)
             return
 
         await ctx.send("Compressing video...")
