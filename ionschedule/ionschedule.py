@@ -6,7 +6,7 @@ import os
 class IonTvSchedule(commands.Cog):
     """Cog to fetch and display ION TV schedule."""
 
-    SCRIPT_URL = "https://raw.githubusercontent.com/daniel-widrick/zap2it-GuideScraping/refs/heads/main/zap2it-GuideScrape.py"
+    SCRIPT_URL = "https://raw.githubusercontent.com/daniel-widrick/zap2it-GuideScraping/main/zap2it-GuideScrape.py"
     OUTPUT_FILE = "xmlguide.xmltv"
 
     def __init__(self, bot):
@@ -16,16 +16,29 @@ class IonTvSchedule(commands.Cog):
     async def ionschedule(self, ctx):
         """Fetches and displays the ION TV schedule for the day."""
         await ctx.send("Fetching ION TV schedule...")
-        
+
         # Download script
         script_path = "zap2it-GuideScrape.py"
-        response = requests.get(self.SCRIPT_URL)
-        with open(script_path, "w", encoding="utf-8") as script_file:
-            script_file.write(response.text)
-        
+        try:
+            response = requests.get(self.SCRIPT_URL, timeout=10)
+            response.raise_for_status()  # Raise an error if the request failed
+            with open(script_path, "w", encoding="utf-8") as script_file:
+                script_file.write(response.text)
+        except requests.exceptions.RequestException as e:
+            await ctx.send(f"Error downloading the guide scraper script: {e}")
+            return
+
         # Run script
-        os.system(f"python {script_path}")
-        
+        result = os.system(f"python {script_path}")
+        if result != 0:
+            await ctx.send("Error running the guide scraper script.")
+            return
+
+        # Check if XML file was created
+        if not os.path.exists(self.OUTPUT_FILE):
+            await ctx.send("Error: XML guide file not found. The script may have failed.")
+            return
+
         # Parse XMLTV file
         tree = ET.parse(self.OUTPUT_FILE)
         root = tree.getroot()
@@ -38,7 +51,7 @@ class IonTvSchedule(commands.Cog):
                 start = program.get("start")
                 stop = program.get("stop")
                 schedule.append(f"{start} - {stop}: {title}")
-        
+
         if schedule:
             await ctx.send("\n".join(schedule))
         else:
