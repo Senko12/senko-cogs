@@ -52,15 +52,14 @@ class YouTubeDownloader(commands.Cog):
             return None
 
     async def compress_video(self, file_path: str) -> str:
-        """Compress the video using FFmpeg with specific parameters and return the new file path."""
+        """Compress the video using FFmpeg and return the new file path."""
         compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
         try:
             if os.path.getsize(file_path) <= 10 * 1024 * 1024:
                 return file_path
 
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-n", "-fs", "7950000", "-fpsmax", "60", 
-                "-s", "676x380", "-b:a", "90000", "-b:v", "400000", compressed_file,
+                "ffmpeg", "-i", file_path, "-b:a", "90000", "-b:v", "400000", compressed_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
