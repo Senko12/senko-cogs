@@ -1,0 +1,7 @@
+{
+    "name": "HugGif",
+    "author": "Senko12",
+    "description": "A cog that fetches and sends hug GIFs from nekos.life API.",
+    "version": "1.0.0",
+    "requirements": []
+}
