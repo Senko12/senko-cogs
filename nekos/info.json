@@ -1,0 +1,9 @@
+{
+  "author": "Senko12",
+  "name": "Nekos",
+  "description": "A cog that fetches images and GIFs from an API.",
+  "install_msg": "Thanks for installing Nekos! Use `[p]help Nekos` to see available commands.",
+  "required_cogs": [],
+  "requirements": ["aiohttp"],
+  "tags": ["image", "gif", "fun"]
+}
