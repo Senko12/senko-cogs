@@ -9,7 +9,7 @@ class HugGif(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def hug(self, ctx, user: discord.Member = None):
+    async def nekohug(self, ctx, user: discord.Member = None):
         """Send a random hug GIF. Optionally mention a user."""
         url = "https://nekos.life/api/v2/img/hug"
         async with aiohttp.ClientSession() as session:
