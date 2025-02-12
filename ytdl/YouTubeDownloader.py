@@ -5,6 +5,10 @@ import os
 import asyncio
 import requests
 from redbot.core import commands
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+# Disable SSL verification warnings
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class YouTubeDownloader(commands.Cog):
     """Download and process YouTube videos for Discord"""
@@ -92,9 +96,9 @@ class YouTubeDownloader(commands.Cog):
             with open(file_path, 'rb') as f:
                 files = {'file': (file_name, f)}
                 
-                # Make the POST request to upload the file
-                url = f"https://filebin.net/{file_name}"
-                response = requests.post(url, files=files)
+                # Make the POST request to upload the file (Disable SSL verification)
+                url = "https://filebin.net/"
+                response = requests.post(url, files=files, verify=False)
 
                 # Check if the upload is successful
                 if response.status_code == 200:
