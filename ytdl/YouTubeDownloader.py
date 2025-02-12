@@ -24,20 +24,12 @@ class YouTubeDownloader(commands.Cog):
                 "noplaylist": True,  # Ensure single video, not playlist
             }
         else:
-            if filetype.lower() == "mp4":
-                # Force MP4 format by filtering out non-MP4 formats
-                ydl_opts = {
-                    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
-                    "outtmpl": f"{output_path}/%(title)s.%(ext)s",
-                    "noplaylist": True,  # Ensure single video, not playlist
-                }
-            else:
-                # Default to best quality video if not MP4
-                ydl_opts = {
-                    "format": "bestvideo+bestaudio/best",
-                    "outtmpl": f"{output_path}/%(title)s.%(ext)s",
-                    "noplaylist": True,  # Ensure single video, not playlist
-                }
+            # Default: Force MP4 format if video
+            ydl_opts = {
+                "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",  # Always prefer MP4
+                "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+                "noplaylist": True,  # Ensure single video, not playlist
+            }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
