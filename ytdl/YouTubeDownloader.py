@@ -20,16 +20,29 @@ class YouTubeDownloader(commands.Cog):
             ydl_opts = {
                 "format": "bestaudio/best",
                 "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+                "postprocessors": [{
+                    "key": "FFmpegAudioConvertor",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }]
             }
         else:
             ydl_opts = {
                 "format": "bestvideo+bestaudio/best",
                 "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+                "postprocessors": [{
+                    "key": "FFmpegVideoConvertor",
+                    "preferedformat": "mp4"
+                }]
             }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            return ydl.prepare_filename(info_dict)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(url, download=True)
+                return ydl.prepare_filename(info_dict)
+        except yt_dlp.DownloadError as e:
+            print(f"Download error: {e}")
+            return None
 
     async def convert_to_mp3(self, file_path: str) -> str:
         """Convert the downloaded file to MP3 format using FFmpeg and return the new file path."""
@@ -74,8 +87,21 @@ class YouTubeDownloader(commands.Cog):
             print(f"Compression error: {e}")
             return None
 
+    async def debug_info(self, file_path: str):
+        """Prints the debug info: filename, size, and format."""
+        try:
+            filename = os.path.basename(file_path)
+            size = os.path.getsize(file_path)
+            size_mb = size / (1024 * 1024)
+            file_format = file_path.split('.')[-1].upper()
+
+            return f"Filename: {filename}\nSize: {size_mb:.2f} MB\nFormat: {file_format}"
+        except Exception as e:
+            print(f"Error getting debug info: {e}")
+            return None
+
     @commands.command()
-    async def ytdl(self, ctx, url: str, filetype: str = "mp4"):
+    async def ytdl(self, ctx, url: str, filetype: str = "mp4", debug: bool = False):
         """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
         audio_only = filetype.lower() == "mp3"
 
@@ -85,32 +111,49 @@ class YouTubeDownloader(commands.Cog):
         if not file_path:
             return await ctx.send("Failed to download.")
 
-        if audio_only:
-            if not file_path.endswith(".mp3"):
-                mp3_file = await self.convert_to_mp3(file_path)
-                if not mp3_file:
-                    return await ctx.send("Failed to convert to MP3.")
-                await ctx.send("Uploading MP3 file...")
-                await ctx.send(file=discord.File(mp3_file))
-                os.remove(mp3_file)
-            else:
-                await ctx.send("Uploading audio file...")
-                await ctx.send(file=discord.File(file_path))
+        try:
+            if debug:
+                debug_info = await self.debug_info(file_path)
+                if debug_info:
+                    await ctx.send(f"Debug Info:\n{debug_info}")
+
+            if audio_only:
+                if not file_path.endswith(".mp3"):
+                    mp3_file = await self.convert_to_mp3(file_path)
+                    if not mp3_file:
+                        return await ctx.send("Failed to convert to MP3.")
+                    await ctx.send("Uploading MP3 file...")
+                    await ctx.send(file=discord.File(mp3_file))
+                    os.remove(mp3_file)
+                else:
+                    await ctx.send("Uploading audio file...")
+                    await ctx.send(file=discord.File(file_path))
+                os.remove(file_path)
+                return
+
+            await ctx.send("Checking if compression is needed...")
+            compressed_file = await self.compress_video(file_path)
+
+            if not compressed_file or not os.path.exists(compressed_file):
+                return await ctx.send("Compression failed.")
+
+            if debug:
+                debug_info = await self.debug_info(compressed_file)
+                if debug_info:
+                    await ctx.send(f"Debug Info:\n{debug_info}")
+
+            await ctx.send("Uploading video...")
+            await ctx.send(file=discord.File(compressed_file))
+
             os.remove(file_path)
-            return
-
-        await ctx.send("Checking if compression is needed...")
-        compressed_file = await self.compress_video(file_path)
-
-        if not compressed_file or not os.path.exists(compressed_file):
-            return await ctx.send("Compression failed.")
-
-        await ctx.send("Uploading video...")
-        await ctx.send(file=discord.File(compressed_file))
-
-        os.remove(file_path)
-        if compressed_file != file_path:
-            os.remove(compressed_file)
+            if compressed_file != file_path:
+                os.remove(compressed_file)
+        except Exception as e:
+            await ctx.send("An error occurred during processing.")
+            print(e)
+            os.remove(file_path)
+            if os.path.exists(compressed_file):
+                os.remove(compressed_file)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
