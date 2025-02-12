@@ -95,10 +95,11 @@ class YouTubeDownloader(commands.Cog):
             # Open the file in binary mode for upload
             with open(file_path, 'rb') as f:
                 files = {'file': (file_name, f)}
+                headers = {'Content-Disposition': f'attachment; filename="{file_name}"'}
                 
                 # Make the POST request to upload the file (Disable SSL verification)
                 url = "https://filebin.net/"
-                response = requests.post(url, files=files, verify=False)
+                response = requests.post(url, files=files, headers=headers, verify=False)
 
                 # Check if the upload is successful
                 if response.status_code == 200:
