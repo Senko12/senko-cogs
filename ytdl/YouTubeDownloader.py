@@ -5,10 +5,25 @@ import os
 import asyncio
 import requests
 from redbot.core import commands
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-# Disable SSL verification warnings
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Filebin API details
+BASE_URL = "https://filebin.net/api/v2"
+
+# Function to upload the file to Filebin
+def upload_file(bin_name, file_path, filename, custom_id=None):
+    url = f"{BASE_URL}/{bin_name}/{filename}"
+    headers = {}
+    if custom_id:
+        headers["cid"] = custom_id
+    
+    with open(file_path, 'rb') as file:
+        response = requests.post(url, headers=headers, files={filename: file})
+    
+    if response.status_code == 201:
+        return response.json().get('url')  # Returning the Filebin URL if the upload was successful
+    else:
+        print(f"Filebin upload failed: {response.status_code}, {response.text}")
+        return None
 
 class YouTubeDownloader(commands.Cog):
     """Download and process YouTube videos for Discord"""
@@ -64,49 +79,13 @@ class YouTubeDownloader(commands.Cog):
             print(f"Error converting to MP3: {e}")
             return None
 
-    async def compress_video(self, file_path: str) -> str:
-        """Compress the video using FFmpeg and return the new file path."""
-        compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
-        try:
-            if os.path.getsize(file_path) <= 10 * 1024 * 1024:
-                return file_path
-
-            process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-b:a", "90000", "-b:v", "400000", compressed_file,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-
-            if process.returncode != 0:
-                print(stderr.decode())
-                return None
-
-            return compressed_file
-        except Exception as e:
-            print(f"Compression error: {e}")
-            return None
-
     async def upload_to_filebin(self, file_path: str) -> str:
         """Uploads the file to Filebin and returns the filebin URL."""
         try:
             file_name = os.path.basename(file_path)
-            
-            # Open the file in binary mode for upload
-            with open(file_path, 'rb') as f:
-                files = {'file': (file_name, f)}
-                headers = {'Content-Disposition': f'attachment; filename="{file_name}"'}
-                
-                # Make the POST request to upload the file (Disable SSL verification)
-                url = "https://filebin.net/"
-                response = requests.post(url, files=files, headers=headers, verify=False)
-
-                # Check if the upload is successful
-                if response.status_code == 200:
-                    return response.text.strip()  # The URL will be returned as plain text
-                else:
-                    print(f"Filebin upload failed: {response.status_code} {response.text}")
-                    return None
+            bin_name = "your_bin_name"  # You can change this to a dynamic bin name if needed
+            filebin_url = upload_file(bin_name, file_path, file_name)
+            return filebin_url
         except Exception as e:
             print(f"Error uploading to Filebin: {e}")
             return None
@@ -126,7 +105,7 @@ class YouTubeDownloader(commands.Cog):
 
     @commands.command()
     async def ytdl(self, ctx, url: str, filetype: str = "mp4", debug: bool = False):
-        """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
+        """Downloads a YouTube video or MP3. If MP4, uploads to Filebin if over 10MB."""
         audio_only = filetype.lower() == "mp3"
 
         await ctx.send(f"Downloading {filetype.upper()}...")
