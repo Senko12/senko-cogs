@@ -60,20 +60,39 @@ class YouTubeDownloader(commands.Cog):
             return None
 
     async def compress_video(self, file_path: str) -> str:
-        """Compress the video using FFmpeg and return the new file path."""
+        """Compress the video using FFmpeg with two-pass encoding and return the new file path."""
         compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
         try:
-            if os.path.getsize(file_path) <= 10 * 1024 * 1024:
+            if os.path.getsize(file_path) <= 10 * 1024 * 1024:  # If the file is small enough, skip compression
                 return file_path
 
-            process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-b:a", "90000", "-b:v", "400000", compressed_file,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
+            # First pass (video encoding without audio)
+            temp_dir = os.path.join(os.path.dirname(file_path), "temp")
+            os.makedirs(temp_dir, exist_ok=True)
 
-            if process.returncode != 0:
+            # Run the first pass (no audio and output to /dev/null or nul)
+            process_1 = await asyncio.create_subprocess_exec(
+                "ffmpeg", "-y", "-i", file_path,
+                "-c:v", "libx264", "-filter:v", "scale=1280:-1", "-b:v", "1000k",
+                "-pass", "1", "-an", "-f", "mp4", os.devnull,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process_1.communicate()
+            if process_1.returncode != 0:
+                print(stderr.decode())
+                return None
+
+            # Second pass (with video and audio encoding)
+            process_2 = await asyncio.create_subprocess_exec(
+                "ffmpeg", "-y", "-i", file_path,
+                "-c:v", "libx264", "-filter:v", "scale=1280:-1", "-b:v", "1000k",
+                "-pass", "2", "-c:a", "aac", "-b:a", "128k",
+                compressed_file,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process_2.communicate()
+
+            if process_2.returncode != 0:
                 print(stderr.decode())
                 return None
 
