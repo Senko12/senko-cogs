@@ -1,4 +1,4 @@
-import discord
+import discord 
 import yt_dlp
 import subprocess
 import os
@@ -20,20 +20,13 @@ class YouTubeDownloader(commands.Cog):
             ydl_opts = {
                 "format": "bestaudio/best",
                 "outtmpl": f"{output_path}/%(title)s.%(ext)s",
-                "postprocessors": [{
-                    "key": "FFmpegAudioConvertor",  # Correct key for audio conversion
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
-                }]
+                "noplaylist": True,  # Ensure single video, not playlist
             }
         else:
             ydl_opts = {
                 "format": "bestvideo+bestaudio/best",
                 "outtmpl": f"{output_path}/%(title)s.%(ext)s",
-                "postprocessors": [{
-                    "key": "FFmpegVideoConvertor",
-                    "preferedformat": "mp4"
-                }]
+                "noplaylist": True,  # Ensure single video, not playlist
             }
 
         try:
@@ -49,7 +42,7 @@ class YouTubeDownloader(commands.Cog):
         mp3_file = file_path.rsplit('.', 1)[0] + ".mp3"
         try:
             process = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-i", file_path, "-vn", "-acodec", "libmp3lame", mp3_file,
+                "ffmpeg", "-i", file_path, "-vn", "-acodec", "libmp3lame", "-q:a", "0", mp3_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
