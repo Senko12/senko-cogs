@@ -3,6 +3,7 @@ import yt_dlp
 import subprocess
 import os
 import asyncio
+import requests
 from redbot.core import commands
 
 class YouTubeDownloader(commands.Cog):
@@ -59,46 +60,18 @@ class YouTubeDownloader(commands.Cog):
             print(f"Error converting to MP3: {e}")
             return None
 
-    async def compress_video(self, file_path: str) -> str:
-        """Compress the video using FFmpeg with two-pass encoding and return the new file path."""
-        compressed_file = file_path.rsplit('.', 1)[0] + "_compressed.mp4"
+    async def upload_to_filebin(self, file_path: str) -> str:
+        """Uploads the file to Filebin and returns the filebin URL."""
         try:
-            if os.path.getsize(file_path) <= 10 * 1024 * 1024:  # If the file is small enough, skip compression
-                return file_path
-
-            # First pass (video encoding without audio)
-            temp_dir = os.path.join(os.path.dirname(file_path), "temp")
-            os.makedirs(temp_dir, exist_ok=True)
-
-            # Run the first pass (no audio and output to /dev/null or nul)
-            process_1 = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-y", "-i", file_path,
-                "-c:v", "libx264", "-filter:v", "scale=1280:-1", "-b:v", "1000k",
-                "-pass", "1", "-an", "-f", "mp4", os.devnull,
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process_1.communicate()
-            if process_1.returncode != 0:
-                print(stderr.decode())
-                return None
-
-            # Second pass (with video and audio encoding)
-            process_2 = await asyncio.create_subprocess_exec(
-                "ffmpeg", "-y", "-i", file_path,
-                "-c:v", "libx264", "-filter:v", "scale=1280:-1", "-b:v", "1000k",
-                "-pass", "2", "-c:a", "aac", "-b:a", "128k",
-                compressed_file,
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process_2.communicate()
-
-            if process_2.returncode != 0:
-                print(stderr.decode())
-                return None
-
-            return compressed_file
+            with open(file_path, 'rb') as f:
+                response = requests.post("https://filebin.net", files={"file": f})
+                if response.status_code == 200:
+                    return response.text.strip()  # The URL will be returned as plain text
+                else:
+                    print("Filebin upload failed:", response.status_code)
+                    return None
         except Exception as e:
-            print(f"Compression error: {e}")
+            print(f"Error uploading to Filebin: {e}")
             return None
 
     async def debug_info(self, file_path: str):
@@ -116,7 +89,7 @@ class YouTubeDownloader(commands.Cog):
 
     @commands.command()
     async def ytdl(self, ctx, url: str, filetype: str = "mp4", debug: bool = False):
-        """Downloads a YouTube video or MP3. If MP4, compresses before sending."""
+        """Downloads a YouTube video or MP3. If MP4, uploads to Filebin if larger than 10MB."""
         audio_only = filetype.lower() == "mp3"
 
         await ctx.send(f"Downloading {filetype.upper()}...")
@@ -134,44 +107,34 @@ class YouTubeDownloader(commands.Cog):
                 await ctx.send(f"Debug Info:\n{debug_info}")
         
         try:
-            if audio_only:
-                if not file_path.endswith(".mp3"):
-                    mp3_file = await self.convert_to_mp3(file_path)
-                    if not mp3_file:
-                        return await ctx.send("Failed to convert to MP3.")
-                    await ctx.send("Uploading MP3 file...")
-                    await ctx.send(file=discord.File(mp3_file))
-                    os.remove(mp3_file)
+            # Check if file is larger than 10MB
+            file_size = os.path.getsize(file_path)
+            file_size_mb = file_size / (1024 * 1024)
+
+            if file_size_mb > 10:
+                # Upload to Filebin if larger than 10MB
+                await ctx.send(f"File is {file_size_mb:.2f} MB, uploading to Filebin...")
+                filebin_url = await self.upload_to_filebin(file_path)
+                if filebin_url:
+                    await ctx.send(f"File uploaded successfully! You can download it from here: {filebin_url}")
                 else:
+                    await ctx.send("Failed to upload to Filebin.")
+            else:
+                # If it's not too large, send it directly
+                if audio_only:
                     await ctx.send("Uploading audio file...")
                     await ctx.send(file=discord.File(file_path))
-                os.remove(file_path)
-                return
+                else:
+                    await ctx.send("Uploading video file...")
+                    await ctx.send(file=discord.File(file_path))
 
-            await ctx.send("Checking if compression is needed...")
-            compressed_file = await self.compress_video(file_path)
-
-            if not compressed_file or not os.path.exists(compressed_file):
-                return await ctx.send("Compression failed.")
-
-            # Debug: Show debug info if compression was done
-            if debug:
-                debug_info = await self.debug_info(compressed_file)
-                if debug_info:
-                    await ctx.send(f"Debug Info (Compressed):\n{debug_info}")
-
-            await ctx.send("Uploading video...")
-            await ctx.send(file=discord.File(compressed_file))
-
+            # Clean up downloaded file
             os.remove(file_path)
-            if compressed_file != file_path:
-                os.remove(compressed_file)
         except Exception as e:
             await ctx.send("An error occurred during processing.")
             print(e)
-            os.remove(file_path)
-            if os.path.exists(compressed_file):
-                os.remove(compressed_file)
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
 async def setup(bot):
     await bot.add_cog(YouTubeDownloader(bot))
