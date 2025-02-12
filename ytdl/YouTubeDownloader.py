@@ -1,4 +1,4 @@
-import discord 
+import discord
 import yt_dlp
 import subprocess
 import os
@@ -11,23 +11,33 @@ class YouTubeDownloader(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def download_youtube_video(self, url: str, audio_only: bool = False) -> str:
+    async def download_youtube_video(self, url: str, audio_only: bool = False, filetype: str = "mp4") -> str:
         """Downloads a YouTube video or audio and returns the file path."""
         output_path = "Downloads"
         os.makedirs(output_path, exist_ok=True)
 
         if audio_only:
+            # Download the best audio only (convert to MP3 later)
             ydl_opts = {
                 "format": "bestaudio/best",
                 "outtmpl": f"{output_path}/%(title)s.%(ext)s",
                 "noplaylist": True,  # Ensure single video, not playlist
             }
         else:
-            ydl_opts = {
-                "format": "bestvideo+bestaudio/best",
-                "outtmpl": f"{output_path}/%(title)s.%(ext)s",
-                "noplaylist": True,  # Ensure single video, not playlist
-            }
+            if filetype.lower() == "mp4":
+                # Force MP4 format by filtering out non-MP4 formats
+                ydl_opts = {
+                    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+                    "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+                    "noplaylist": True,  # Ensure single video, not playlist
+                }
+            else:
+                # Default to best quality video if not MP4
+                ydl_opts = {
+                    "format": "bestvideo+bestaudio/best",
+                    "outtmpl": f"{output_path}/%(title)s.%(ext)s",
+                    "noplaylist": True,  # Ensure single video, not playlist
+                }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -99,7 +109,7 @@ class YouTubeDownloader(commands.Cog):
         audio_only = filetype.lower() == "mp3"
 
         await ctx.send(f"Downloading {filetype.upper()}...")
-        file_path = await self.download_youtube_video(url, audio_only)
+        file_path = await self.download_youtube_video(url, audio_only, filetype)
 
         if not file_path:
             return await ctx.send("Failed to download.")
