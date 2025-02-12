@@ -101,17 +101,20 @@ class YouTubeDownloader(commands.Cog):
         audio_only = filetype.lower() == "mp3"
 
         await ctx.send(f"Downloading {filetype.upper()}...")
+
+        # Download the video or audio
         file_path = await self.download_youtube_video(url, audio_only, filetype)
 
         if not file_path:
             return await ctx.send("Failed to download.")
 
+        # Debug: Show debug info if enabled
+        if debug:
+            debug_info = await self.debug_info(file_path)
+            if debug_info:
+                await ctx.send(f"Debug Info:\n{debug_info}")
+        
         try:
-            if debug:
-                debug_info = await self.debug_info(file_path)
-                if debug_info:
-                    await ctx.send(f"Debug Info:\n{debug_info}")
-
             if audio_only:
                 if not file_path.endswith(".mp3"):
                     mp3_file = await self.convert_to_mp3(file_path)
@@ -132,10 +135,11 @@ class YouTubeDownloader(commands.Cog):
             if not compressed_file or not os.path.exists(compressed_file):
                 return await ctx.send("Compression failed.")
 
+            # Debug: Show debug info if compression was done
             if debug:
                 debug_info = await self.debug_info(compressed_file)
                 if debug_info:
-                    await ctx.send(f"Debug Info:\n{debug_info}")
+                    await ctx.send(f"Debug Info (Compressed):\n{debug_info}")
 
             await ctx.send("Uploading video...")
             await ctx.send(file=discord.File(compressed_file))
