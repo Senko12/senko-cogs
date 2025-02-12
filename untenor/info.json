@@ -1,0 +1,12 @@
+{
+    "author": ["Senko12"],
+    "name": "UnTenor",
+    "description": "Replaces Tenor GIF links with direct, embedded links.",
+    "version": "1.0.0",
+    "min_bot_version": "3.4.0",
+    "hidden": false,
+    "disabled": false,
+    "required_cogs": [],
+    "requirements": [],
+    "tags": ["GIF", "Tenor", "Media"]
+}
