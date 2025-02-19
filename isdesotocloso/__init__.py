@@ -1,4 +1,5 @@
 from .pymyweather import SchoolClosureCog
 
-def setup(bot):
-    bot.add_cog(SchoolClosureCog(bot))
+async def setup(bot):
+    # Ensure the cog is added properly as a coroutine
+    await bot.add_cog(SchoolClosureCog(bot))
