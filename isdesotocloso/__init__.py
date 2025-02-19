@@ -1,5 +1,10 @@
-from .pymyweather import SchoolClosureCog
+from redbot.core import commands
 
-async def setup(bot):
-    # Ensure the cog is added properly as a coroutine
-    await bot.add_cog(SchoolClosureCog(bot))
+class SchoolClosureCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def desoto(self, ctx):
+        # Your logic for the desoto command here
+        await ctx.send("This is where the school closure info will go.")
