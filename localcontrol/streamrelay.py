@@ -37,10 +37,12 @@ class StreamRelay(commands.Cog):
                 json.dump({}, f)
 
     async def _run_server(self):
+        await self.bot.wait_until_red_ready()
         await self.runner.setup()
         site = web.TCPSite(self.runner, "0.0.0.0", 8080)
         await site.start()
-        print("WebSocket server started on port 8080")
+        print("[StreamRelay] WebSocket server started on port 8080 and ready for connections.")
+
 
     def _load_channels(self):
         with open(self.channels_file, "r") as f:
