@@ -1,0 +1,10 @@
+{
+  "author": ["Senko12"],
+  "install_msg": "✅ StreamRelay cog installed! Use `!load streamrelay` to activate.",
+  "name": "StreamRelay",
+  "short": "Relays Discord messages to a web page with M3U8/YouTube playback.",
+  "description": "A cog that connects Discord chat to a web player via Socket.IO, allowing users to switch streams with !chan, add new channels with !add, stop streams with !stop, and view available channels with !guide.",
+  "requirements": ["aiohttp", "python-socketio"],
+  "tags": ["stream", "socketio", "discord", "web", "video"],
+  "type": "COG"
+}
