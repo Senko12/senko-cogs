@@ -3,7 +3,7 @@
         "Senko12"
     ],
     "install_msg": "Screenshot cog installed. Use `[p]scrn <name>` to capture a screenshot from a stream listed in streams.json.",
-    "name": "Screenshot",
+    "name": "m3uscreenshot",
     "short": "Take screenshots from M3U8 streams",
     "description": "Adds a command to capture a single-frame screenshot from an M3U8 livestream using ffmpeg. Streams are defined in streams.json.",
     "tags": [
