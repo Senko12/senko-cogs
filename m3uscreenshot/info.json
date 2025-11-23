@@ -1,0 +1,20 @@
+{
+    "author": [
+        "Senko12"
+    ],
+    "install_msg": "Screenshot cog installed. Use `[p]scrn <name>` to capture a screenshot from a stream listed in streams.json.",
+    "name": "Screenshot",
+    "short": "Take screenshots from M3U8 streams",
+    "description": "Adds a command to capture a single-frame screenshot from an M3U8 livestream using ffmpeg. Streams are defined in streams.json.",
+    "tags": [
+        "m3u8",
+        "livestream",
+        "screenshot",
+        "ffmpeg"
+    ],
+    "requirements": [],
+    "min_bot_version": "3.5.0",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}
