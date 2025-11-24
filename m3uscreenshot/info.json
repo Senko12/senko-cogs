@@ -1,11 +1,16 @@
 {
-    "author": ["Konata"],
-    "install_msg": "Streamlink+OpenCV screenshot cog installed. Use [p]scrn <name>.",
+    "author": ["Senko12"],
+    "install_msg": "VLC screenshot cog installed. Use [p]scrn <name> to grab a frame from a stream in streams.json.",
     "name": "Screenshot",
-    "short": "Take screenshots from M3U8 streams without ffmpeg.",
-    "description": "Captures a single frame using Streamlink (pipe) + OpenCV instead of ffmpeg. Streams are defined in streams.json.",
-    "tags": ["m3u8", "stream", "screenshot", "streamlink", "opencv"],
-    "requirements": ["opencv-python", "numpy", "streamlink"],
+    "short": "Take screenshots from M3U8 streams using VLC.",
+    "description": "Adds a command to capture a single-frame screenshot from an M3U8 livestream using VLC's scene filter. Streams are defined in streams.json.",
+    "tags": [
+        "m3u8",
+        "livestream",
+        "screenshot",
+        "vlc"
+    ],
+    "requirements": [],
     "min_bot_version": "3.5.0",
     "hidden": false,
     "disabled": false,
